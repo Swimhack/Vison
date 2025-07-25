@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Claude Chat</title>
+    <title>AI Assistant</title>
     <style>
         * {
             margin: 0;
@@ -283,13 +283,13 @@
 <body>
     <div class="chat-container">
         <div class="chat-header">
-            <h1>Chat with Claude <span class="status-indicator" id="statusIndicator"></span></h1>
+            <h1>AI Assistant <span class="status-indicator" id="statusIndicator"></span></h1>
             <button class="settings-button" id="settingsButton">Settings</button>
         </div>
         
         <div class="chat-messages" id="chatMessages">
             <div class="message assistant">
-                <div class="message-content">Hello! I'm Claude, an AI assistant. How can I help you today?</div>
+                <div class="message-content">Hello! I'm your AI assistant. How can I help you today?</div>
                 <div class="message-time">Just now</div>
             </div>
         </div>
@@ -318,12 +318,12 @@
     <div class="modal" id="apiKeyModal">
         <div class="modal-content">
             <h2>API Key Required</h2>
-            <p>To use this chat interface, you need to provide your Anthropic API key. You can get one from <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a></p>
+            <p>To use this AI assistant, you need to provide your API key. You can get one from <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a></p>
             <input 
                 type="password" 
                 class="modal-input" 
                 id="apiKeyInput" 
-                placeholder="Enter your Anthropic API key here..."
+                placeholder="Enter your API key here..."
             >
             <button class="modal-button" id="saveApiKey">Save API Key</button>
         </div>
