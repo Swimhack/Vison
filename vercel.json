@@ -1,0 +1,23 @@
+{
+  "version": 2,
+  "name": "claude-web-chat",
+  "builds": [
+    {
+      "src": "claude-chat-server.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/claude-chat-server.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/claude-chat-server.js"
+    }
+  ],
+  "env": {
+    "NODE_ENV": "production"
+  }
+}

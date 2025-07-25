@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claude Chat</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .chat-container {
+            width: 90%;
+            max-width: 800px;
+            height: 80vh;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-header {
+            background: #4f46e5;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            position: relative;
+        }
+
+        .chat-header h1 {
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .settings-button {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f8fafc;
+        }
+
+        .message {
+            margin-bottom: 16px;
+            max-width: 80%;
+        }
+
+        .message.user {
+            margin-left: auto;
+        }
+
+        .message.assistant {
+            margin-right: auto;
+        }
+
+        .message-content {
+            padding: 12px 16px;
+            border-radius: 12px;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+        }
+
+        .message.user .message-content {
+            background: #4f46e5;
+            color: white;
+        }
+
+        .message.assistant .message-content {
+            background: white;
+            border: 1px solid #e2e8f0;
+            color: #1f2937;
+        }
+
+        .message-time {
+            font-size: 11px;
+            opacity: 0.6;
+            margin-top: 4px;
+            text-align: right;
+        }
+
+        .message.assistant .message-time {
+            text-align: left;
+        }
+
+        .chat-input-container {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .chat-input-wrapper {
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+        }
+
+        .chat-input {
+            flex: 1;
+            min-height: 44px;
+            max-height: 120px;
+            padding: 12px 16px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 14px;
+            resize: none;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .chat-input:focus {
+            border-color: #4f46e5;
+        }
+
+        .send-button {
+            background: #4f46e5;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+            min-width: 80px;
+        }
+
+        .send-button:hover:not(:disabled) {
+            background: #4338ca;
+        }
+
+        .send-button:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .modal-content h2 {
+            margin-bottom: 16px;
+            color: #1f2937;
+        }
+
+        .modal-content p {
+            margin-bottom: 20px;
+            color: #6b7280;
+            line-height: 1.5;
+        }
+
+        .modal-input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-family: monospace;
+            font-size: 14px;
+        }
+
+        .modal-button {
+            background: #4f46e5;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            margin-right: 10px;
+        }
+
+        .modal-button.secondary {
+            background: #6b7280;
+        }
+
+        .typing-indicator {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 16px;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            max-width: 80px;
+            margin-bottom: 16px;
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 4px;
+        }
+
+        .typing-dot {
+            width: 6px;
+            height: 6px;
+            background: #9ca3af;
+            border-radius: 50%;
+            animation: typing 1.4s infinite;
+        }
+
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typing {
+            0%, 60%, 100% {
+                transform: translateY(0);
+            }
+            30% {
+                transform: translateY(-10px);
+            }
+        }
+
+        .error-message {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #dc2626;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #10b981;
+            margin-left: 8px;
+        }
+
+        .status-indicator.disconnected {
+            background: #ef4444;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <h1>Chat with Claude <span class="status-indicator" id="statusIndicator"></span></h1>
+            <button class="settings-button" id="settingsButton">Settings</button>
+        </div>
+        
+        <div class="chat-messages" id="chatMessages">
+            <div class="message assistant">
+                <div class="message-content">Hello! I'm Claude, an AI assistant. How can I help you today?</div>
+                <div class="message-time">Just now</div>
+            </div>
+        </div>
+
+        <div class="typing-indicator" id="typingIndicator">
+            <div class="typing-dots">
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+            </div>
+        </div>
+        
+        <div class="chat-input-container">
+            <div class="chat-input-wrapper">
+                <textarea 
+                    class="chat-input" 
+                    id="chatInput" 
+                    placeholder="Type your message here..." 
+                    rows="1"
+                ></textarea>
+                <button class="send-button" id="sendButton">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="apiKeyModal">
+        <div class="modal-content">
+            <h2>API Key Required</h2>
+            <p>To use this chat interface, you need to provide your Anthropic API key. You can get one from <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a></p>
+            <input 
+                type="password" 
+                class="modal-input" 
+                id="apiKeyInput" 
+                placeholder="Enter your Anthropic API key here..."
+            >
+            <button class="modal-button" id="saveApiKey">Save API Key</button>
+        </div>
+    </div>
+
+    <div class="modal" id="settingsModal">
+        <div class="modal-content">
+            <h2>Settings</h2>
+            <p>Manage your API key and preferences</p>
+            <input 
+                type="password" 
+                class="modal-input" 
+                id="settingsApiKeyInput" 
+                placeholder="Update your API key..."
+            >
+            <button class="modal-button" id="updateApiKey">Update API Key</button>
+            <button class="modal-button secondary" id="clearChat">Clear Chat</button>
+            <button class="modal-button secondary" id="closeSettings">Close</button>
+        </div>
+    </div>
+
+    <script>
+        class ClaudeChat {
+            constructor() {
+                this.apiKey = localStorage.getItem('anthropic-api-key');
+                this.chatMessages = document.getElementById('chatMessages');
+                this.chatInput = document.getElementById('chatInput');
+                this.sendButton = document.getElementById('sendButton');
+                this.apiKeyModal = document.getElementById('apiKeyModal');
+                this.settingsModal = document.getElementById('settingsModal');
+                this.apiKeyInput = document.getElementById('apiKeyInput');
+                this.saveApiKeyButton = document.getElementById('saveApiKey');
+                this.settingsButton = document.getElementById('settingsButton');
+                this.typingIndicator = document.getElementById('typingIndicator');
+                this.statusIndicator = document.getElementById('statusIndicator');
+
+                this.initializeEventListeners();
+                this.checkApiKey();
+                this.autoResizeTextarea();
+                this.updateConnectionStatus(true);
+            }
+
+            initializeEventListeners() {
+                this.sendButton.addEventListener('click', () => this.sendMessage());
+                this.chatInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        this.sendMessage();
+                    }
+                });
+                
+                this.saveApiKeyButton.addEventListener('click', () => this.saveApiKey());
+                this.apiKeyInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        this.saveApiKey();
+                    }
+                });
+
+                this.settingsButton.addEventListener('click', () => this.openSettings());
+                document.getElementById('updateApiKey').addEventListener('click', () => this.updateApiKey());
+                document.getElementById('clearChat').addEventListener('click', () => this.clearChat());
+                document.getElementById('closeSettings').addEventListener('click', () => this.closeSettings());
+            }
+
+            checkApiKey() {
+                if (!this.apiKey) {
+                    this.apiKeyModal.style.display = 'flex';
+                } else {
+                    this.apiKeyModal.style.display = 'none';
+                }
+            }
+
+            saveApiKey() {
+                const apiKey = this.apiKeyInput.value.trim();
+                if (apiKey) {
+                    localStorage.setItem('anthropic-api-key', apiKey);
+                    this.apiKey = apiKey;
+                    this.apiKeyModal.style.display = 'none';
+                    this.apiKeyInput.value = '';
+                }
+            }
+
+            openSettings() {
+                this.settingsModal.style.display = 'flex';
+            }
+
+            updateApiKey() {
+                const apiKey = document.getElementById('settingsApiKeyInput').value.trim();
+                if (apiKey) {
+                    localStorage.setItem('anthropic-api-key', apiKey);
+                    this.apiKey = apiKey;
+                    document.getElementById('settingsApiKeyInput').value = '';
+                    this.closeSettings();
+                }
+            }
+
+            clearChat() {
+                this.chatMessages.innerHTML = `
+                    <div class="message assistant">
+                        <div class="message-content">Hello! I'm Claude, an AI assistant. How can I help you today?</div>
+                        <div class="message-time">Just now</div>
+                    </div>
+                `;
+                this.closeSettings();
+            }
+
+            closeSettings() {
+                this.settingsModal.style.display = 'none';
+            }
+
+            autoResizeTextarea() {
+                this.chatInput.addEventListener('input', () => {
+                    this.chatInput.style.height = 'auto';
+                    this.chatInput.style.height = Math.min(this.chatInput.scrollHeight, 120) + 'px';
+                });
+            }
+
+            updateConnectionStatus(connected) {
+                if (connected) {
+                    this.statusIndicator.classList.remove('disconnected');
+                } else {
+                    this.statusIndicator.classList.add('disconnected');
+                }
+            }
+
+            async sendMessage() {
+                const message = this.chatInput.value.trim();
+                if (!message || !this.apiKey) return;
+
+                this.addMessage(message, 'user');
+                this.chatInput.value = '';
+                this.chatInput.style.height = 'auto';
+                this.sendButton.disabled = true;
+                this.showTypingIndicator();
+
+                try {
+                    const response = await this.callClaudeAPI(message);
+                    this.hideTypingIndicator();
+                    this.addMessage(response, 'assistant');
+                    this.updateConnectionStatus(true);
+                } catch (error) {
+                    this.hideTypingIndicator();
+                    this.updateConnectionStatus(false);
+                    this.addErrorMessage('Sorry, there was an error processing your request. Please check your API key and try again.');
+                    console.error('API Error:', error);
+                } finally {
+                    this.sendButton.disabled = false;
+                }
+            }
+
+            async callClaudeAPI(message) {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        apiKey: this.apiKey
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || `Request failed: ${response.status}`);
+                }
+
+                const data = await response.json();
+                return data.response;
+            }
+
+            addMessage(content, role) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${role}`;
+                
+                const messageContent = document.createElement('div');
+                messageContent.className = 'message-content';
+                messageContent.textContent = content;
+                
+                const messageTime = document.createElement('div');
+                messageTime.className = 'message-time';
+                messageTime.textContent = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                
+                messageDiv.appendChild(messageContent);
+                messageDiv.appendChild(messageTime);
+                
+                this.chatMessages.appendChild(messageDiv);
+                this.scrollToBottom();
+            }
+
+            addErrorMessage(content) {
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'error-message';
+                errorDiv.textContent = content;
+                this.chatMessages.appendChild(errorDiv);
+                this.scrollToBottom();
+            }
+
+            showTypingIndicator() {
+                this.typingIndicator.style.display = 'flex';
+                this.chatMessages.appendChild(this.typingIndicator);
+                this.scrollToBottom();
+            }
+
+            hideTypingIndicator() {
+                this.typingIndicator.style.display = 'none';
+            }
+
+            scrollToBottom() {
+                this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+            }
+        }
+
+        // Initialize the chat when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new ClaudeChat();
+        });
+    </script>
+</body>
+</html>

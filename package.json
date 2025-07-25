@@ -1,0 +1,29 @@
+{
+  "name": "claude-web-chat",
+  "version": "1.0.0",
+  "description": "A simple web interface for chatting with Claude AI",
+  "main": "claude-chat-server.js",
+  "scripts": {
+    "start": "node claude-chat-server.js",
+    "dev": "node claude-chat-server.js",
+    "build": "echo 'No build step required for this simple server'",
+    "test": "echo 'No tests specified'"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "keywords": [
+    "claude",
+    "ai",
+    "chat",
+    "anthropic",
+    "web-interface"
+  ],
+  "author": "James Strickland",
+  "license": "MIT"
+}
