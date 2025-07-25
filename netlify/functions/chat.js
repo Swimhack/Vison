@@ -1,5 +1,4 @@
-// Import fetch for Node.js environments that don't have it built-in
-const fetch = require('node-fetch');
+const https = require('https');
 
 exports.handler = async (event, context) => {
     // Set CORS headers
@@ -30,6 +29,15 @@ exports.handler = async (event, context) => {
         console.log('Function called with method:', event.httpMethod);
         console.log('Event body:', event.body);
         
+        if (!event.body) {
+            console.log('No body provided');
+            return {
+                statusCode: 400,
+                headers,
+                body: JSON.stringify({ error: 'No request body provided' })
+            };
+        }
+
         const { message, apiKey } = JSON.parse(event.body);
 
         if (!message || !apiKey) {
@@ -43,43 +51,73 @@ exports.handler = async (event, context) => {
 
         console.log('Making request to Anthropic API...');
 
-        const response = await fetch('https://api.anthropic.com/v1/messages', {
+        // Use a more compatible approach for the API call
+        const postData = JSON.stringify({
+            model: 'claude-3-5-sonnet-20241022',
+            max_tokens: 1024,
+            messages: [
+                {
+                    role: 'user',
+                    content: message
+                }
+            ]
+        });
+
+        const options = {
+            hostname: 'api.anthropic.com',
+            port: 443,
+            path: '/v1/messages',
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'x-api-key': apiKey,
-                'anthropic-version': '2023-06-01'
-            },
-            body: JSON.stringify({
-                model: 'claude-3-5-sonnet-20241022',
-                max_tokens: 1024,
-                messages: [
-                    {
-                        role: 'user',
-                        content: message
+                'anthropic-version': '2023-06-01',
+                'Content-Length': Buffer.byteLength(postData)
+            }
+        };
+
+        const response = await new Promise((resolve, reject) => {
+            const req = https.request(options, (res) => {
+                let data = '';
+                
+                res.on('data', (chunk) => {
+                    data += chunk;
+                });
+                
+                res.on('end', () => {
+                    console.log('API Response status:', res.statusCode);
+                    console.log('API Response data:', data);
+                    
+                    if (res.statusCode !== 200) {
+                        reject(new Error(`API request failed: ${res.statusCode} - ${data}`));
+                        return;
                     }
-                ]
-            })
+                    
+                    try {
+                        const jsonData = JSON.parse(data);
+                        resolve(jsonData);
+                    } catch (parseError) {
+                        console.error('JSON parse error:', parseError);
+                        reject(new Error('Failed to parse API response'));
+                    }
+                });
+            });
+
+            req.on('error', (error) => {
+                console.error('Request error:', error);
+                reject(error);
+            });
+
+            req.write(postData);
+            req.end();
         });
 
-        if (!response.ok) {
-            const errorData = await response.text();
-            console.error('Anthropic API Error:', response.status, errorData);
-            return {
-                statusCode: response.status,
-                headers,
-                body: JSON.stringify({ 
-                    error: `API request failed: ${response.status}` 
-                })
-            };
-        }
-
-        const data = await response.json();
+        console.log('Successful API response received');
         
         return {
             statusCode: 200,
             headers,
-            body: JSON.stringify({ response: data.content[0].text })
+            body: JSON.stringify({ response: response.content[0].text })
         };
 
     } catch (error) {
@@ -87,7 +125,10 @@ exports.handler = async (event, context) => {
         return {
             statusCode: 500,
             headers,
-            body: JSON.stringify({ error: 'Internal server error' })
+            body: JSON.stringify({ 
+                error: 'Internal server error',
+                details: error.message 
+            })
         };
     }
 };
