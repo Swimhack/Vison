@@ -1,3 +1,6 @@
+// Import fetch for Node.js environments that don't have it built-in
+const fetch = require('node-fetch');
+
 exports.handler = async (event, context) => {
     // Set CORS headers
     const headers = {
@@ -24,15 +27,21 @@ exports.handler = async (event, context) => {
     }
 
     try {
+        console.log('Function called with method:', event.httpMethod);
+        console.log('Event body:', event.body);
+        
         const { message, apiKey } = JSON.parse(event.body);
 
         if (!message || !apiKey) {
+            console.log('Missing message or API key');
             return {
                 statusCode: 400,
                 headers,
                 body: JSON.stringify({ error: 'Message and API key are required' })
             };
         }
+
+        console.log('Making request to Anthropic API...');
 
         const response = await fetch('https://api.anthropic.com/v1/messages', {
             method: 'POST',
